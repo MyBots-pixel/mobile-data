@@ -1,0 +1,592 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#07111f">
+  <meta name="description" content="FreeWave offline-first messaging prototype">
+  <link rel="manifest" href="./manifest.json">
+  <title>FreeWave — Offline Network</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #07111f;
+      --panel: #101e30;
+      --panel2: #17283d;
+      --text: #f3f7ff;
+      --muted: #9eafc6;
+      --blue: #60a5fa;
+      --cyan: #67e8f9;
+      --green: #4ade80;
+      --amber: #fbbf24;
+      --border: #263950;
+      --red: #f87171;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: radial-gradient(ellipse at top, #142b48 0%, var(--bg) 48%);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    button, input, textarea { font: inherit; }
+    button { cursor: pointer; }
+    button:focus-visible, input:focus-visible, textarea:focus-visible {
+      outline: 2px solid var(--cyan);
+      outline-offset: 3px;
+    }
+    .wrap { width: min(760px, 100%); margin: auto; padding: 20px 14px 42px; }
+    header { display: flex; align-items: center; gap: 12px; margin: 8px 0 24px; }
+    .logo {
+      display: grid; place-items: center; width: 48px; height: 48px;
+      flex-shrink: 0; border-radius: 16px; color: #06121d;
+      background: linear-gradient(135deg, var(--cyan), var(--blue));
+      font-size: 25px; font-weight: 900;
+    }
+    h1 { margin: 0; font-size: 26px; letter-spacing: -1px; }
+    h2 { font-size: 22px; margin: 9px 0; }
+    h3 { margin: 0; font-size: 17px; }
+    p { line-height: 1.55; }
+    .subtitle, .muted { color: var(--muted); }
+    .subtitle { font-size: 13px; margin-top: 4px; }
+    .muted { font-size: 13px; }
+    .pill {
+      margin-left: auto; border: 1px solid var(--border); border-radius: 99px;
+      padding: 7px 9px; color: var(--cyan); font-size: 10px; white-space: nowrap;
+    }
+    .hero, .card {
+      background: #101e30ed; border: 1px solid var(--border);
+      border-radius: 19px; padding: 18px; margin-bottom: 14px;
+    }
+    .hero { background: linear-gradient(140deg, #153b5b, #101e30 75%); }
+    .eyebrow { text-transform: uppercase; letter-spacing: 1.4px; color: var(--cyan); font-size: 11px; font-weight: 800; }
+    .status { display: flex; align-items: center; gap: 10px; padding: 12px; margin-top: 15px; border-radius: 12px; background: #071827; }
+    .dot { width: 9px; height: 9px; flex: 0 0 auto; border-radius: 50%; background: var(--green); }
+    .status strong { display: block; font-size: 13px; }
+    .status small { display: block; color: var(--muted); font-size: 11px; margin-top: 4px; }
+    .section-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+    .tag { font-size: 10px; color: var(--cyan); background: #123248; border-radius: 7px; padding: 6px 8px; white-space: nowrap; }
+    label { display: block; margin: 14px 0 7px; font-size: 13px; color: #c6d4e8; }
+    input, textarea {
+      width: 100%; display: block; color: var(--text); background: #071421;
+      border: 1px solid var(--border); border-radius: 11px; padding: 13px;
+    }
+    textarea { min-height: 90px; resize: vertical; }
+    input:focus, textarea:focus { border-color: var(--blue); }
+    .primary, .secondary, .danger {
+      border-radius: 11px; padding: 12px; font-weight: 700;
+    }
+    .primary {
+      width: 100%; margin-top: 12px; border: 0; color: #07111f;
+      background: linear-gradient(100deg, var(--cyan), var(--blue));
+    }
+    .secondary { border: 1px solid var(--border); background: var(--panel2); color: var(--text); font-size: 12px; }
+    .danger { border: 1px solid #733d48; background: #321d29; color: #fecaca; font-size: 12px; }
+    .button-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+    .button-row > button { flex: 1; }
+    .message {
+      background: #091725; border: 1px solid var(--border);
+      border-radius: 13px; padding: 13px; margin-top: 10px; overflow-wrap: anywhere;
+    }
+    .message-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+    .message-top strong { font-size: 13px; }
+    .message time { color: var(--muted); font-size: 10px; display: block; margin-top: 4px; }
+    .message p { white-space: pre-wrap; margin: 10px 0; font-size: 14px; }
+    .message-bottom { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .message-bottom small { color: var(--amber); font-size: 10px; }
+    .empty { text-align: center; padding: 22px 8px; color: var(--muted); font-size: 13px; }
+    .notice { border-left: 3px solid var(--amber); background: #2a2414; padding: 12px; border-radius: 8px; color: #f5dfaa; font-size: 12px; line-height: 1.6; }
+    .success { color: var(--green); font-size: 12px; line-height: 1.5; }
+    .error { color: var(--red); font-size: 12px; line-height: 1.5; }
+    .device { display: flex; align-items: center; gap: 12px; padding: 13px 0; }
+    .device-icon { background: #1a3149; padding: 11px; border-radius: 12px; font-size: 20px; }
+    .device-info { flex: 1; min-width: 0; }
+    .device-info strong { font-size: 13px; }
+    .device-info small { display: block; color: var(--muted); margin-top: 4px; line-height: 1.4; }
+    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 15px; }
+    .stat { background: #091725; border: 1px solid var(--border); border-radius: 12px; padding: 12px 8px; text-align: center; }
+    .stat strong { display: block; font-size: 21px; }
+    .stat span { display: block; color: var(--muted); font-size: 10px; margin-top: 4px; }
+    .file-input { font-size: 12px; padding: 10px; }
+    footer { text-align: center; color: #71849c; font-size: 11px; padding: 14px; line-height: 1.8; }
+    @media (max-width: 420px) {
+      .wrap { padding: 14px 11px 30px; }
+      .hero, .card { padding: 15px; }
+      h1 { font-size: 23px; }
+      .pill { font-size: 9px; }
+    }
+  </style>
+</head>
+<body>
+<main class="wrap">
+  <header>
+    <div class="logo">F</div>
+    <div>
+      <h1>FreeWave</h1>
+      <div class="subtitle">Your connection. Your network.</div>
+    </div>
+    <div class="pill">VERSION 0.2</div>
+  </header>
+
+  <section class="hero">
+    <div class="eyebrow">Offline-first network</div>
+    <h2>Keep your messages close.</h2>
+    <p class="muted">Save messages without internet, back them up, and prepare for future nearby connections.</p>
+    <div class="status">
+      <span class="dot" id="statusDot"></span>
+      <div>
+        <strong id="connectionTitle">Checking local storage…</strong>
+        <small id="connectionText">Preparing this device</small>
+      </div>
+    </div>
+    <div class="stats">
+      <div class="stat"><strong id="totalCount">0</strong><span>Saved messages</span></div>
+      <div class="stat"><strong id="queuedCount">0</strong><span>Awaiting connection</span></div>
+      <div class="stat"><strong id="deliveredCount">0</strong><span>Delivery confirmed</span></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="section-head">
+      <h3>Device identity</h3>
+      <span class="tag">LOCAL PROFILE</span>
+    </div>
+    <label for="sender">Name for this device</label>
+    <input id="sender" maxlength="32" placeholder="e.g. My iPhone" autocomplete="nickname">
+    <p class="muted">This is only a local display name. It does not register your phone on a mobile network.</p>
+  </section>
+
+  <section class="card">
+    <div class="section-head">
+      <h3>Compose a message</h3>
+      <span class="tag">OFFLINE READY</span>
+    </div>
+    <form id="messageForm">
+      <label for="recipient">Recipient name (optional)</label>
+      <input id="recipient" maxlength="64" placeholder="e.g. Friend's phone">
+      <label for="message">Message</label>
+      <textarea id="message" maxlength="1000" placeholder="Write your message…" required></textarea>
+      <button class="primary" type="submit">Save to offline queue ↗</button>
+    </form>
+    <p class="muted">Saving adds a message to this device only. It does not send it to your recipient.</p>
+    <div id="formNotice" aria-live="polite"></div>
+  </section>
+
+  <section class="card">
+    <div class="section-head">
+      <h3>Message archive</h3>
+      <span class="tag">ON THIS DEVICE</span>
+    </div>
+    <p class="muted">Export a backup before clearing website data or changing devices.</p>
+    <div class="button-row">
+      <button class="secondary" id="exportButton" type="button">Export backup</button>
+      <button class="secondary" id="importButton" type="button">Import backup</button>
+    </div>
+    <input class="file-input" id="importFile" type="file" accept=".json,application/json" hidden>
+    <div id="archiveNotice" aria-live="polite"></div>
+    <div id="messages">
+      <div class="empty">Your messages will appear here.</div>
+    </div>
+    <div class="button-row">
+      <button class="danger" id="clearButton" type="button">Clear all messages</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="section-head">
+      <h3>Network readiness</h3>
+      <span class="tag">PHASE 2 PREP</span>
+    </div>
+    <div class="device">
+      <div class="device-icon">📱</div>
+      <div class="device-info">
+        <strong id="thisDevice">This iPhone</strong>
+        <small>Local app and message archive</small>
+      </div>
+      <span class="tag">READY</span>
+    </div>
+    <div class="device">
+      <div class="device-icon">📡</div>
+      <div class="device-info">
+        <strong>Nearby FreeWave devices</strong>
+        <small>Discovery and radio communication are not implemented yet.</small>
+      </div>
+      <span class="tag">NOT ACTIVE</span>
+    </div>
+    <div class="notice">
+      No messages are transmitted or marked delivered by this version. A real nearby network requires supported native connectivity APIs and another compatible device for testing.
+    </div>
+  </section>
+
+  <footer>
+    FREEWAVE · OFFLINE PROTOTYPE<br>
+    Local data is not a secure backup. Export important messages regularly.
+  </footer>
+</main>
+
+<script>
+(() => {
+  "use strict";
+
+  // Keep these keys unchanged to preserve messages from version 0.1.
+  const STORAGE_KEY = "freewave_messages_v1";
+  const NAME_KEY = "freewave_device_name_v1";
+  const MAX_IMPORT_BYTES = 2 * 1024 * 1024;
+  const MAX_MESSAGES = 5000;
+
+  const $ = (id) => document.getElementById(id);
+  const senderInput = $("sender");
+  const recipientInput = $("recipient");
+  const messageInput = $("message");
+  const messagesEl = $("messages");
+  let messages = [];
+
+  function showNotice(id, message, type = "success") {
+    const el = $(id);
+    el.replaceChildren();
+    const p = document.createElement("p");
+    p.className = type;
+    p.textContent = message;
+    el.appendChild(p);
+  }
+
+  function normalizeMessage(item) {
+    if (!item || typeof item !== "object") return null;
+    if (typeof item.text !== "string" || !item.text.trim()) return null;
+
+    const createdAt = typeof item.createdAt === "string" &&
+      !Number.isNaN(Date.parse(item.createdAt))
+      ? new Date(item.createdAt).toISOString()
+      : new Date().toISOString();
+
+    return {
+      id: typeof item.id === "string" && item.id.length < 150
+        ? item.id
+        : makeId(),
+      sender: typeof item.sender === "string"
+        ? item.sender.slice(0, 32)
+        : "Unknown device",
+      recipient: typeof item.recipient === "string"
+        ? item.recipient.slice(0, 64)
+        : "",
+      text: item.text.slice(0, 1000),
+      createdAt,
+      status: item.status === "delivered" ? "delivered" : "queued"
+    };
+  }
+
+  function makeId() {
+    return crypto.randomUUID
+      ? crypto.randomUUID()
+      : "fw-" + Date.now() + "-" + Math.random().toString(36).slice(2);
+  }
+
+  function loadMessages() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      const parsed = raw ? JSON.parse(raw) : [];
+      messages = Array.isArray(parsed)
+        ? parsed.map(normalizeMessage).filter(Boolean).slice(-MAX_MESSAGES)
+        : [];
+    } catch {
+      messages = [];
+      showNotice("archiveNotice",
+        "Existing messages could not be read. Exported backups may help recover them.",
+        "error");
+    }
+  }
+
+  function saveMessages() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
+      updateCounts();
+      return true;
+    } catch {
+      showNotice("formNotice",
+        "Storage failed. Your device may be low on space or blocking website storage.",
+        "error");
+      return false;
+    }
+  }
+
+  function updateCounts() {
+    $("totalCount").textContent = messages.length;
+    $("queuedCount").textContent =
+      messages.filter((m) => m.status !== "delivered").length;
+    $("deliveredCount").textContent =
+      messages.filter((m) => m.status === "delivered").length;
+  }
+
+  function renderMessages() {
+    messagesEl.replaceChildren();
+
+    if (!messages.length) {
+      const empty = document.createElement("div");
+      empty.className = "empty";
+      empty.textContent = "No saved messages yet. Write your first message above.";
+      messagesEl.appendChild(empty);
+      updateCounts();
+      return;
+    }
+
+    [...messages].reverse().forEach((item) => {
+      const card = document.createElement("article");
+      card.className = "message";
+
+      const top = document.createElement("div");
+      top.className = "message-top";
+
+      const who = document.createElement("div");
+      const sender = document.createElement("strong");
+      sender.textContent = item.sender || "Unknown device";
+      const time = document.createElement("time");
+      time.textContent = new Date(item.createdAt).toLocaleString();
+      who.append(sender, time);
+
+      const remove = document.createElement("button");
+      remove.type = "button";
+      remove.className = "secondary";
+      remove.textContent = "Delete";
+      remove.setAttribute("aria-label", "Delete message");
+      remove.addEventListener("click", () => deleteMessage(item.id));
+
+      top.append(who, remove);
+
+      const body = document.createElement("p");
+      body.textContent = item.text;
+
+      const bottom = document.createElement("div");
+      bottom.className = "message-bottom";
+
+      const state = document.createElement("small");
+      state.textContent = item.status === "delivered"
+        ? "Delivery confirmed"
+        : "Saved locally · Awaiting connection";
+
+      const recipient = document.createElement("small");
+      recipient.style.color = "var(--muted)";
+      recipient.textContent = item.recipient
+        ? "To: " + item.recipient
+        : "No recipient set";
+
+      bottom.append(state, recipient);
+      card.append(top, body, bottom);
+      messagesEl.appendChild(card);
+    });
+
+    updateCounts();
+  }
+
+  function deleteMessage(id) {
+    if (!confirm("Delete this saved message?")) return;
+    const previous = messages;
+    messages = messages.filter((m) => m.id !== id);
+    if (saveMessages()) {
+      renderMessages();
+    } else {
+      messages = previous;
+      renderMessages();
+    }
+  }
+
+  function exportBackup() {
+    const backup = {
+      format: "freewave-backup",
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      deviceName: senderInput.value.trim(),
+      messages
+    };
+
+    const blob = new Blob(
+      [JSON.stringify(backup, null, 2)],
+      { type: "application/json" }
+    );
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "freewave-backup-" +
+      new Date().toISOString().slice(0, 10) + ".json";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    showNotice("archiveNotice",
+      "Backup prepared. Check your browser downloads or Files app.");
+  }
+
+  async function importBackup(file) {
+    if (!file) return;
+
+    if (file.size > MAX_IMPORT_BYTES) {
+      showNotice("archiveNotice",
+        "This backup is too large. Maximum supported size is 2 MB.",
+        "error");
+      return;
+    }
+
+    try {
+      const raw = await file.text();
+      const data = JSON.parse(raw);
+      const incoming = Array.isArray(data)
+        ? data
+        : data && data.format === "freewave-backup" &&
+          Array.isArray(data.messages)
+          ? data.messages
+          : null;
+
+      if (!incoming) {
+        throw new Error("This is not a recognised FreeWave backup.");
+      }
+
+      if (incoming.length > MAX_MESSAGES) {
+        throw new Error("This backup contains too many messages.");
+      }
+
+      const cleaned = incoming.map(normalizeMessage).filter(Boolean);
+      const existingIds = new Set(messages.map((m) => m.id));
+      const unique = cleaned.filter((m) => !existingIds.has(m.id));
+      const room = Math.max(0, MAX_MESSAGES - messages.length);
+      const additions = unique.slice(0, room);
+
+      if (!additions.length) {
+        showNotice("archiveNotice",
+          "No new messages imported. The backup may be empty or already imported.");
+        return;
+      }
+
+      const previous = messages;
+      messages = [...messages, ...additions];
+
+      if (!saveMessages()) {
+        messages = previous;
+        return;
+      }
+
+      if (data && !Array.isArray(data) &&
+          typeof data.deviceName === "string" &&
+          !senderInput.value.trim()) {
+        senderInput.value = data.deviceName.slice(0, 32);
+        saveName();
+      }
+
+      renderMessages();
+      showNotice("archiveNotice",
+        "Imported " + additions.length + " message(s). Duplicates were skipped." +
+        (unique.length > additions.length ? " Some messages were skipped because the archive is full." : ""));
+    } catch (error) {
+      showNotice("archiveNotice",
+        error.message || "Could not read that backup file.",
+        "error");
+    } finally {
+      $("importFile").value = "";
+    }
+  }
+
+  function saveName() {
+    try {
+      localStorage.setItem(NAME_KEY, senderInput.value.trim());
+      $("thisDevice").textContent = senderInput.value.trim() || "This iPhone";
+    } catch {
+      showNotice("formNotice", "Could not save the device name.", "error");
+    }
+  }
+
+  senderInput.value = (() => {
+    try { return localStorage.getItem(NAME_KEY) || ""; }
+    catch { return ""; }
+  })();
+
+  $("thisDevice").textContent = senderInput.value || "This iPhone";
+  senderInput.addEventListener("change", saveName);
+  senderInput.addEventListener("input", () => {
+    $("thisDevice").textContent = senderInput.value.trim() || "This iPhone";
+  });
+
+  $("messageForm").addEventListener("submit", (event) => {
+    event.preventDefault();
+
+    const sender = senderInput.value.trim();
+    const text = messageInput.value.trim();
+    const recipient = recipientInput.value.trim();
+
+    if (!sender) {
+      showNotice("formNotice", "Enter a device name first.", "error");
+      senderInput.focus();
+      return;
+    }
+    if (!text) return;
+
+    const previous = messages;
+    messages.push({
+      id: makeId(),
+      sender: sender.slice(0, 32),
+      recipient: recipient.slice(0, 64),
+      text: text.slice(0, 1000),
+      createdAt: new Date().toISOString(),
+      status: "queued"
+    });
+
+    if (!saveMessages()) {
+      messages = previous;
+      return;
+    }
+
+    saveName();
+    renderMessages();
+    messageInput.value = "";
+    showNotice("formNotice",
+      "Saved on this device. It has not been transmitted.");
+  });
+
+  $("exportButton").addEventListener("click", exportBackup);
+  $("importButton").addEventListener("click", () => $("importFile").click());
+  $("importFile").addEventListener("change", (event) => {
+    importBackup(event.target.files[0]);
+  });
+
+  $("clearButton").addEventListener("click", () => {
+    if (!messages.length) return;
+    if (!confirm("Delete every saved message? Export a backup first if you need one.")) return;
+
+    const previous = messages;
+    messages = [];
+    if (saveMessages()) {
+      renderMessages();
+      showNotice("archiveNotice", "All saved messages were cleared.");
+    } else {
+      messages = previous;
+      renderMessages();
+    }
+  });
+
+  function updateConnection() {
+    $("connectionTitle").textContent =
+      navigator.onLine ? "Browser has internet access" : "Offline mode";
+    $("connectionText").textContent =
+      "Local storage available · Nearby delivery is not active";
+  }
+
+  loadMessages();
+  renderMessages();
+  updateConnection();
+
+  window.addEventListener("online", updateConnection);
+  window.addEventListener("offline", updateConnection);
+
+  if ("serviceWorker" in navigator &&
+      (location.protocol === "https:" || location.hostname === "localhost")) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("./sw.js").catch(() => {
+        showNotice("archiveNotice",
+          "Offline caching could not be updated. Existing local messages are separate from the cache.",
+          "error");
+      });
+    });
+  }
+})();
+</script>
+</body>
+</html>
